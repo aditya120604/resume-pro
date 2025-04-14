@@ -53,12 +53,12 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				resume: {
-					primary: '#33C3F0',
-					secondary: '#1EAEDB',
-					tertiary: '#0FA0CE',
-					dark: '#403E43',
-					light: '#C8C8C9',
-					accent: '#8A898C'
+					primary: '#1E3A8A',
+					secondary: '#1E40AF',
+					tertiary: '#2563EB',
+					dark: '#0F172A',
+					light: '#4B5563',
+					accent: '#334155'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
