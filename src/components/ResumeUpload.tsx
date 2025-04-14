@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +40,6 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   };
 
   const handleFile = (file: File) => {
-    // Check if the file is a PDF or DOC/DOCX
     const fileType = file.type;
     const validTypes = [
       'application/pdf',
@@ -54,11 +52,9 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
       return;
     }
 
-    // Reset error state if valid file
     setError(null);
     setFile(file);
 
-    // Simulate upload process
     simulateUpload(file);
   };
 
@@ -66,7 +62,6 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     setIsUploading(true);
     setUploadProgress(0);
     
-    // Simulate progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         const newProgress = prev + 10;
@@ -122,6 +117,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
                 <Button
                   onClick={() => document.getElementById("resume-upload")?.click()}
                   variant="outline"
+                  className="text-resume-primary bg-white hover:bg-gray-100"
                 >
                   Browse Files
                 </Button>
