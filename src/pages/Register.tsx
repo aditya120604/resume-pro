@@ -58,7 +58,7 @@ export default function Register() {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMsg && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm">
+          <div className="bg-red-900/20 border border-red-800 text-red-200 px-4 py-2 rounded-md text-sm">
             {errorMsg}
           </div>
         )}
@@ -73,6 +73,7 @@ export default function Register() {
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
             required
+            className="bg-secondary/50 border-secondary"
           />
         </div>
 
@@ -86,6 +87,7 @@ export default function Register() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
             required
+            className="bg-secondary/50 border-secondary"
           />
         </div>
 
@@ -99,6 +101,7 @@ export default function Register() {
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             required
+            className="bg-secondary/50 border-secondary"
           />
         </div>
 
@@ -112,6 +115,7 @@ export default function Register() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
             required
+            className="bg-secondary/50 border-secondary"
           />
         </div>
 
@@ -120,6 +124,7 @@ export default function Register() {
             id="terms" 
             checked={agreeTerms} 
             onCheckedChange={() => setAgreeTerms(!agreeTerms)} 
+            className="data-[state=checked]:bg-resume-primary data-[state=checked]:border-resume-primary"
           />
           <Label
             htmlFor="terms"
@@ -128,14 +133,14 @@ export default function Register() {
             I agree to the{" "}
             <Link
               to="/terms"
-              className="text-resume-primary hover:text-resume-secondary hover:underline"
+              className="text-resume-tertiary hover:text-resume-secondary hover:underline"
             >
               terms of service
             </Link>{" "}
             and{" "}
             <Link
               to="/privacy"
-              className="text-resume-primary hover:text-resume-secondary hover:underline"
+              className="text-resume-tertiary hover:text-resume-secondary hover:underline"
             >
               privacy policy
             </Link>
@@ -144,7 +149,7 @@ export default function Register() {
 
         <Button 
           type="submit" 
-          className="w-full bg-resume-primary hover:bg-resume-secondary"
+          className="w-full bg-resume-tertiary hover:bg-resume-secondary"
           disabled={isLoading || !agreeTerms}
         >
           {isLoading ? (
@@ -161,7 +166,7 @@ export default function Register() {
           Already have an account?{" "}
           <Link
             to="/login"
-            className="font-semibold text-resume-primary hover:text-resume-secondary"
+            className="font-semibold text-resume-tertiary hover:text-resume-secondary"
           >
             Log in
           </Link>
