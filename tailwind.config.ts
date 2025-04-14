@@ -52,14 +52,14 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-                resume: {
-                    primary: '#9b87f5',
-                    secondary: '#7E69AB',
-                    tertiary: '#6E59A5',
-                    dark: '#1A1F2C',
-                    light: '#D6BCFA',
-                    accent: '#E5DEFF',
-                },
+				resume: {
+					primary: '#33C3F0',
+					secondary: '#1EAEDB',
+					tertiary: '#0FA0CE',
+					dark: '#403E43',
+					light: '#C8C8C9',
+					accent: '#8A898C'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

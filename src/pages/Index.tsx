@@ -37,17 +37,17 @@ export default function Index() {
   const testimonials = [
     {
       quote: "ResumePro helped me optimize my resume that got me interviews at top tech companies!",
-      author: "Michael S.",
+      author: "Rahul Sharma",
       role: "Software Engineer"
     },
     {
       quote: "After using ResumePro, my interview callback rate increased by 70%. Totally worth it!",
-      author: "Sarah L.",
+      author: "Priya Patel",
       role: "Marketing Manager"
     },
     {
       quote: "The ATS analysis showed me exactly what was missing from my resume. Now I'm employed!",
-      author: "James T.",
+      author: "Arjun Reddy",
       role: "Data Analyst"
     }
   ];
