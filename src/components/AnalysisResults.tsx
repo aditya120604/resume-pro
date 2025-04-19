@@ -46,12 +46,50 @@ interface AnalysisResultsProps {
 }
 
 export function AnalysisResults({ analysis }: AnalysisResultsProps) {
+  // Calculate total of all section scores
+  const totalSectionScore = 
+    analysis.sectionScores.format + 
+    analysis.sectionScores.content + 
+    analysis.sectionScores.keywords + 
+    analysis.sectionScores.impact;
+  
+  // Normalize section scores to ensure they add up to 100%
   const chartData = [
-    { name: 'Format', value: analysis.sectionScores.format },
-    { name: 'Content', value: analysis.sectionScores.content },
-    { name: 'Keywords', value: analysis.sectionScores.keywords },
-    { name: 'Impact', value: analysis.sectionScores.impact },
+    { 
+      name: 'Format', 
+      value: Math.round((analysis.sectionScores.format / totalSectionScore) * 100) 
+    },
+    { 
+      name: 'Content', 
+      value: Math.round((analysis.sectionScores.content / totalSectionScore) * 100) 
+    },
+    { 
+      name: 'Keywords', 
+      value: Math.round((analysis.sectionScores.keywords / totalSectionScore) * 100) 
+    },
+    { 
+      name: 'Impact', 
+      value: Math.round((analysis.sectionScores.impact / totalSectionScore) * 100) 
+    },
   ];
+  
+  // Ensure the values add up exactly to 100 (rounding might cause off-by-one errors)
+  const sum = chartData.reduce((acc, item) => acc + item.value, 0);
+  if (sum !== 100) {
+    // Add or subtract the difference from the largest value to make the total exactly 100
+    const diff = 100 - sum;
+    let largestIdx = 0;
+    let largestVal = chartData[0].value;
+    
+    for (let i = 1; i < chartData.length; i++) {
+      if (chartData[i].value > largestVal) {
+        largestVal = chartData[i].value;
+        largestIdx = i;
+      }
+    }
+    
+    chartData[largestIdx].value += diff;
+  }
 
   const COLORS = ['#9b87f5', '#6E59A5', '#D6BCFA', '#7E69AB'];
 
