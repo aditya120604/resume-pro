@@ -36,19 +36,19 @@ export default function Index() {
 
   const testimonials = [
     {
-      quote: "ResumePro helped me optimize my resume that got me interviews at top tech companies!",
-      author: "Rahul Sharma",
-      role: "Software Engineer"
+      quote: "ResumePro helped me create a professional resume that stands out in college placements. The AI insights are game-changing!",
+      author: "Harsh Prajapati",
+      role: "CE student"
     },
     {
-      quote: "After using ResumePro, my interview callback rate increased by 70%. Totally worth it!",
-      author: "Priya Patel",
-      role: "Marketing Manager"
+      quote: "As an IT student, I was struggling with my resume format. ResumePro's detailed analysis helped me highlight my skills perfectly.",
+      author: "Rina Joshi",
+      role: "IT student"
     },
     {
-      quote: "The ATS analysis showed me exactly what was missing from my resume. Now I'm employed!",
-      author: "Arjun Reddy",
-      role: "Data Analyst"
+      quote: "The ATS optimization feature is incredible. It gave me confidence in my resume before campus interviews.",
+      author: "Tirth Patel",
+      role: "CE student"
     }
   ];
 
@@ -112,7 +112,7 @@ export default function Index() {
             {/* Step 1 */}
             <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-resume-accent rounded-full flex items-center justify-center mb-4">
-                <span className="text-resume-primary font-bold">1</span>
+                <span className="text-white font-bold">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-3">Upload Your Resume</h3>
               <p className="text-gray-600">
@@ -123,7 +123,7 @@ export default function Index() {
             {/* Step 2 */}
             <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-resume-accent rounded-full flex items-center justify-center mb-4">
-                <span className="text-resume-primary font-bold">2</span>
+                <span className="text-white font-bold">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-3">Get AI Analysis</h3>
               <p className="text-gray-600">
@@ -134,7 +134,7 @@ export default function Index() {
             {/* Step 3 */}
             <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-resume-accent rounded-full flex items-center justify-center mb-4">
-                <span className="text-resume-primary font-bold">3</span>
+                <span className="text-white font-bold">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-3">Improve & Apply</h3>
               <p className="text-gray-600">
@@ -195,7 +195,7 @@ export default function Index() {
                 </div>
                 <p className="text-gray-700 mb-6 italic">"{testimonial.quote}"</p>
                 <div>
-                  <p className="font-semibold">{testimonial.author}</p>
+                  <p className="font-semibold text-black">{testimonial.author}</p>
                   <p className="text-sm text-gray-500">{testimonial.role}</p>
                 </div>
               </div>
