@@ -9,7 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      resume_analyses: {
+        Row: {
+          created_at: string
+          id: string
+          keywords_matched: string[] | null
+          keywords_missing: string[] | null
+          resume_id: string
+          score: number
+          section_scores: Json
+          strengths: string[] | null
+          suggestions: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          keywords_matched?: string[] | null
+          keywords_missing?: string[] | null
+          resume_id: string
+          score: number
+          section_scores: Json
+          strengths?: string[] | null
+          suggestions?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          keywords_matched?: string[] | null
+          keywords_missing?: string[] | null
+          resume_id?: string
+          score?: number
+          section_scores?: Json
+          strengths?: string[] | null
+          suggestions?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_analyses_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          analysis_status: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_status?: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_status?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

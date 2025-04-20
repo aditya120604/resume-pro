@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUp, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface FileUploadProps {
-  onFileUploaded: (file: File) => void;
+  onFileUploaded: (file: File, analysisId: string) => void;
 }
 
 export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
+  const { toast } = useToast();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -39,7 +42,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     const fileType = file.type;
     const validTypes = [
       'application/pdf',
@@ -54,28 +57,63 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
 
     setError(null);
     setFile(file);
-
-    simulateUpload(file);
-  };
-
-  const simulateUpload = (file: File) => {
     setIsUploading(true);
     setUploadProgress(0);
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        const newProgress = prev + 10;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsUploading(false);
-            onFileUploaded(file);
-          }, 500);
-          return 100;
-        }
-        return newProgress;
-      });
-    }, 300);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: resumeData, error: resumeError } = await supabase
+        .from('resumes')
+        .insert({
+          file_name: file.name,
+          file_type: fileType,
+          file_path: `${user.id}/${file.name}`,
+          analysis_status: 'uploading'
+        })
+        .select()
+        .single();
+
+      if (resumeError) throw resumeError;
+
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(`${user.id}/${file.name}`, file, {
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          }
+        });
+
+      if (uploadError) throw uploadError;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target?.result as string;
+        
+        const { error: analysisError } = await supabase.functions
+          .invoke('analyze-resume', {
+            body: { resumeId: resumeData.id, text }
+          });
+
+        if (analysisError) throw analysisError;
+
+        setIsUploading(false);
+        onFileUploaded(file, resumeData.id);
+        
+        toast({
+          title: "Resume uploaded successfully",
+          description: "Your resume is being analyzed. Results will be available shortly.",
+        });
+      };
+
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError('An error occurred while uploading your resume.');
+      setIsUploading(false);
+    }
   };
 
   return (
