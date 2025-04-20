@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -16,6 +16,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -56,67 +58,101 @@ export default function Register() {
       title="Create an account"
       subtitle="Get started with ResumePro"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {errorMsg && (
-          <div className="bg-red-900/20 border border-red-800 text-red-200 px-4 py-2 rounded-md text-sm">
+          <div className="bg-destructive/15 border border-destructive text-destructive px-4 py-2 rounded-lg text-sm">
             {errorMsg}
           </div>
         )}
         
         <div className="space-y-2">
-          <Label htmlFor="name">Full name</Label>
-          <Input
-            id="name"
-            type="text"
-            placeholder="John Doe"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            required
-            className="bg-secondary/50 border-secondary"
-          />
+          <Label htmlFor="name" className="text-sm font-medium">Full name</Label>
+          <div className="relative">
+            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              required
+              className="pl-10 bg-secondary/50 border-secondary"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-            className="bg-secondary/50 border-secondary"
-          />
+          <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              className="pl-10 bg-secondary/50 border-secondary"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            className="bg-secondary/50 border-secondary"
-          />
+          <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              className="pl-10 pr-10 bg-secondary/50 border-secondary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm password</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-            className="bg-secondary/50 border-secondary"
-          />
+          <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              className="pl-10 pr-10 bg-secondary/50 border-secondary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -149,7 +185,7 @@ export default function Register() {
 
         <Button 
           type="submit" 
-          className="w-full bg-resume-tertiary hover:bg-resume-secondary"
+          className="w-full bg-resume-tertiary hover:bg-resume-secondary font-semibold"
           disabled={isLoading || !agreeTerms}
         >
           {isLoading ? (
