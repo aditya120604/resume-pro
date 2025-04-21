@@ -42,15 +42,16 @@ export default function Register() {
 
     try {
       const { success, message } = await register(name, email, password);
-      
+
       if (success) {
-        toast.success(message);
-        
-        // If the message mentions email confirmation, stay on the page
         if (message.includes("check your email")) {
-          // Stay on the page and show success message
+          setErrorMsg("");
+          toast.success("Registration successful! Please check your email to confirm your account before logging in.");
+          setTimeout(() => {
+            setErrorMsg("Please check your email inbox and click the confirmation link before logging in. If you don't see the email, check your spam folder or try registering again.");
+          }, 100);
         } else {
-          // Otherwise navigate to dashboard
+          toast.success(message);
           navigate("/dashboard");
         }
       } else {

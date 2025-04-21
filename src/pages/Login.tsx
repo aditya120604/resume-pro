@@ -32,19 +32,27 @@ export default function Login() {
         toast.success("Logged in successfully");
         navigate("/dashboard");
       } else {
-        setErrorMsg("Invalid email or password. Please check your credentials.");
-        
-        // Check if this might be due to unverified email
-        toast.error("If you just registered, make sure to verify your email before logging in", {
-          duration: 5000,
-        });
+        // Show a more helpful toast for common issues
+        setErrorMsg("Invalid email or password. Please check your credentials or verify your email before logging in.");
+
+        toast.error(
+          <>
+            <span>
+              If you just registered, please check your email and click the confirmation link.
+              <br />
+              If you see "invalid or expired link", try registering again or ask for a new link from the login page.
+            </span>
+          </>,
+          { duration: 7000 }
+        );
       }
     } catch (error: any) {
       const errorMessage = error?.message || "An error occurred during login";
-      
-      // Special handling for common error cases
-      if (errorMessage.includes("Email not confirmed")) {
-        setErrorMsg("Your email has not been verified. Please check your inbox and verify your email before logging in.");
+      // Extra detection for known auth issues
+      if (
+        errorMessage.match(/(not\s*confirmed|confirm\s*your\s*email|email\s*not\s*verified|Email not confirmed|Email link is invalid|expired)/i)
+      ) {
+        setErrorMsg("Your email has not been verified or the confirmation link expired. Please check your inbox for a valid confirmation link or try registering again.");
       } else {
         setErrorMsg(errorMessage);
       }
