@@ -1,12 +1,12 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileUp, FileText, CheckCircle2, AlertCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { ResumeDropZone } from "./ResumeDropZone";
+import { ResumeUploadProgress } from "./ResumeUploadProgress";
+import { UploadedResumeSummary } from "./UploadedResumeSummary";
 
 interface FileUploadProps {
   onFileUploaded: (file: File, analysisId: string) => void;
@@ -86,17 +86,15 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
 
       if (resumeError) throw resumeError;
 
-      // Upload file to storage
+      // Upload file to storage (onProgress not supported, so we'll skip progress for now)
       const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true,
-          onProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          }
         });
+
+      setUploadProgress(100); // Instantly set to 100% since no progress
 
       if (uploadError) throw uploadError;
 
@@ -125,7 +123,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     } catch (error) {
       console.error('Upload error:', error);
       setError('An error occurred while uploading your resume.');
-      setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -139,83 +137,18 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
       </CardHeader>
       <CardContent>
         {!file ? (
-          <div
-            className={`border-2 border-dashed rounded-lg p-10 text-center ${
-              isDragging ? "border-resume-primary bg-resume-accent/20" : "border-muted"
-            }`}
+          <ResumeDropZone
+            isDragging={isDragging}
+            error={error}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-          >
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="rounded-full bg-resume-accent/30 p-3">
-                <FileUp className="h-8 w-8 text-resume-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-medium">Drag your resume here</p>
-                <p className="text-sm text-muted-foreground">
-                  Supports PDF, DOC, and DOCX files
-                </p>
-              </div>
-              <div>
-                <input
-                  type="file"
-                  id="resume-upload"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  onClick={() => document.getElementById("resume-upload")?.click()}
-                  variant="outline"
-                  className="text-resume-primary bg-white hover:bg-gray-100"
-                >
-                  Browse Files
-                </Button>
-              </div>
-              {error && (
-                <div className="flex items-center text-destructive gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm">{error}</span>
-                </div>
-              )}
-            </div>
-          </div>
+            onFileChange={handleFileChange}
+          />
         ) : isUploading ? (
-          <div className="space-y-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <FileText className="h-8 w-8 text-resume-primary" />
-                <div>
-                  <p className="text-sm font-medium">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024).toFixed(1)} KB
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
-            </div>
-            <Progress value={uploadProgress} className="h-2" />
-          </div>
+          <ResumeUploadProgress file={file} uploadProgress={uploadProgress} />
         ) : (
-          <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(file.size / 1024).toFixed(1)} KB • Uploaded successfully
-                </p>
-              </div>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setFile(null)}
-            >
-              Change
-            </Button>
-          </div>
+          <UploadedResumeSummary file={file} onChange={() => setFile(null)} />
         )}
       </CardContent>
     </Card>
