@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -27,13 +28,15 @@ export default function Login() {
     try {
       const success = await login(email, password);
       if (success) {
+        toast.success("Logged in successfully");
         navigate("/dashboard");
       } else {
-        setErrorMsg("Invalid email or password");
+        setErrorMsg("Invalid email or password. Please check your credentials.");
       }
-    } catch (error) {
-      setErrorMsg("An error occurred during login");
-      console.error(error);
+    } catch (error: any) {
+      const errorMessage = error?.message || "An error occurred during login";
+      setErrorMsg(errorMessage);
+      console.error("Login error:", error);
     }
   };
 

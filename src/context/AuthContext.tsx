@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+import { Session, User, AuthError } from "@supabase/supabase-js";
 
 interface UserProfile {
   id: string;
@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.id);
         setSession(currentSession);
         
         if (currentSession && currentSession.user) {
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Then check for an existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession?.user?.id);
       setSession(currentSession);
       
       if (currentSession && currentSession.user) {
@@ -69,19 +71,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) {
         console.error("Login error:", error.message);
-        return false;
+        throw error;
       }
       
+      console.log("Login successful:", data.user?.id);
       return true;
     } catch (error) {
-      console.error("Unexpected login error:", error);
+      console.error("Login error:", error);
       return false;
     } finally {
       setIsLoading(false);
@@ -93,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -105,12 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error("Registration error:", error.message);
-        return false;
+        throw error;
       }
       
+      console.log("Registration successful:", data);
       return true;
     } catch (error) {
-      console.error("Unexpected registration error:", error);
+      console.error("Registration error:", error);
       return false;
     } finally {
       setIsLoading(false);
