@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { FileUp, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 interface FileUploadProps {
   onFileUploaded: (file: File, analysisId: string) => void;
@@ -12,6 +14,7 @@ interface FileUploadProps {
 
 export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -55,21 +58,27 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
       return;
     }
 
+    if (!user) {
+      setError("You must be logged in to upload a resume");
+      return;
+    }
+
     setError(null);
     setFile(file);
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
+      // Create a record in the resumes table
+      const filePath = `${user.id}/${file.name}`;
+      
       const { data: resumeData, error: resumeError } = await supabase
         .from('resumes')
         .insert({
+          user_id: user.id,
           file_name: file.name,
           file_type: fileType,
-          file_path: `${user.id}/${file.name}`,
+          file_path: filePath,
           analysis_status: 'uploading'
         })
         .select()
@@ -77,10 +86,13 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
 
       if (resumeError) throw resumeError;
 
+      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('resumes')
-        .upload(`${user.id}/${file.name}`, file, {
-          onUploadProgress: (progress) => {
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          onProgress: (progress) => {
             const percent = (progress.loaded / progress.total) * 100;
             setUploadProgress(percent);
           }
@@ -88,6 +100,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
 
       if (uploadError) throw uploadError;
 
+      // Call the analyze-resume Edge Function
       const reader = new FileReader();
       reader.onload = async (e) => {
         const text = e.target?.result as string;
@@ -112,7 +125,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     } catch (error) {
       console.error('Upload error:', error);
       setError('An error occurred while uploading your resume.');
-      setIsUploading(false);
+      setIsLoading(false);
     }
   };
 
