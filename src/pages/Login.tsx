@@ -6,13 +6,14 @@ import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -32,10 +33,21 @@ export default function Login() {
         navigate("/dashboard");
       } else {
         setErrorMsg("Invalid email or password. Please check your credentials.");
+        
+        // Check if this might be due to unverified email
+        toast.error("If you just registered, make sure to verify your email before logging in", {
+          duration: 5000,
+        });
       }
     } catch (error: any) {
       const errorMessage = error?.message || "An error occurred during login";
-      setErrorMsg(errorMessage);
+      
+      // Special handling for common error cases
+      if (errorMessage.includes("Email not confirmed")) {
+        setErrorMsg("Your email has not been verified. Please check your inbox and verify your email before logging in.");
+      } else {
+        setErrorMsg(errorMessage);
+      }
       console.error("Login error:", error);
     }
   };
@@ -54,15 +66,19 @@ export default function Login() {
         
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
+          <div className="relative">
+            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              className="pl-10"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -75,15 +91,30 @@ export default function Login() {
               Forgot password?
             </Link>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
+          <div className="relative">
+            <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              className="pl-10 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <Button 

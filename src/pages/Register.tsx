@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -41,15 +41,25 @@ export default function Register() {
     }
 
     try {
-      const success = await register(name, email, password);
+      const { success, message } = await register(name, email, password);
+      
       if (success) {
-        navigate("/dashboard");
+        toast.success(message);
+        
+        // If the message mentions email confirmation, stay on the page
+        if (message.includes("check your email")) {
+          // Stay on the page and show success message
+        } else {
+          // Otherwise navigate to dashboard
+          navigate("/dashboard");
+        }
       } else {
-        setErrorMsg("Registration failed. Please try again.");
+        setErrorMsg(message);
       }
-    } catch (error) {
-      setErrorMsg("An error occurred during registration");
-      console.error(error);
+    } catch (error: any) {
+      const errorMessage = error?.message || "An error occurred during registration";
+      setErrorMsg(errorMessage);
+      console.error("Registration error:", error);
     }
   };
 

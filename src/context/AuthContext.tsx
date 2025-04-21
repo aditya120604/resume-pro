@@ -13,7 +13,7 @@ interface AuthContextType {
   user: UserProfile | null;
   session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Register function
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; message: string }> => {
     setIsLoading(true);
     
     try {
@@ -108,14 +108,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error("Registration error:", error.message);
-        throw error;
+        return { success: false, message: error.message };
       }
       
       console.log("Registration successful:", data);
-      return true;
-    } catch (error) {
+      
+      // Check if email confirmation is required
+      if (data?.user && data.session === null) {
+        return { 
+          success: true, 
+          message: "Registration successful! Please check your email to confirm your account before logging in." 
+        };
+      }
+      
+      return { success: true, message: "Registration successful!" };
+    } catch (error: any) {
+      const errorMessage = error?.message || "An error occurred during registration";
       console.error("Registration error:", error);
-      return false;
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
