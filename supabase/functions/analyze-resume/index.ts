@@ -16,9 +16,57 @@ serve(async (req) => {
 
   try {
     const { resumeId, text } = await req.json();
+    
+    if (!resumeId || !text) {
+      return new Response(JSON.stringify({ 
+        error: 'Missing resumeId or text in request body' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!openAIApiKey) {
+      console.error("OpenAI API key not found");
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Processing resume ${resumeId} with text length: ${text.length}`);
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://pogdrjzralwigkrbjgwh.supabase.co';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseServiceKey) {
+      console.error("Supabase service key not found");
+      return new Response(JSON.stringify({ 
+        error: 'Supabase service key not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      supabaseUrl,
+      supabaseServiceKey
+    );
+
+    // Update resume status to processing
+    await supabaseClient
+      .from('resumes')
+      .update({ analysis_status: 'processing' })
+      .eq('id', resumeId);
 
     // Analyze resume using OpenAI
+    console.log("Calling OpenAI API...");
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -54,16 +102,50 @@ serve(async (req) => {
       }),
     });
 
-    const aiResult = await openaiResponse.json();
-    const analysis = JSON.parse(aiResult.choices[0].message.content);
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error("OpenAI API error:", errorText);
+      
+      // Update resume status to failed
+      await supabaseClient
+        .from('resumes')
+        .update({ analysis_status: 'failed' })
+        .eq('id', resumeId);
+        
+      return new Response(JSON.stringify({ 
+        error: `OpenAI API error: ${openaiResponse.status} - ${errorText}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Create Supabase client
-    const supabaseClient = createClient(
-      'https://pogdrjzralwigkrbjgwh.supabase.co',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const aiResult = await openaiResponse.json();
+    console.log("OpenAI response received");
+    
+    let analysis;
+    try {
+      analysis = JSON.parse(aiResult.choices[0].message.content);
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      console.log("Raw content:", aiResult.choices[0].message.content);
+      
+      // Update resume status to failed
+      await supabaseClient
+        .from('resumes')
+        .update({ analysis_status: 'failed' })
+        .eq('id', resumeId);
+        
+      return new Response(JSON.stringify({ 
+        error: 'Failed to parse analysis results' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Store analysis results
+    console.log("Storing analysis results in database");
     const { data, error } = await supabaseClient
       .from('resume_analyses')
       .insert({
@@ -78,8 +160,18 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Database error:", error);
+      // Update resume status to failed
+      await supabaseClient
+        .from('resumes')
+        .update({ analysis_status: 'failed' })
+        .eq('id', resumeId);
+        
+      throw error;
+    }
 
+    console.log("Analysis complete, updating resume status");
     // Update resume status
     await supabaseClient
       .from('resumes')

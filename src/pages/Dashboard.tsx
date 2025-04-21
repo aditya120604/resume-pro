@@ -6,67 +6,70 @@ import { ResumeUpload } from "@/components/ResumeUpload";
 import { AnalysisResults, ResumeAnalysis } from "@/components/AnalysisResults";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, FileText, BarChart3 } from "lucide-react";
+import { FileText, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<ResumeAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (uploadedFile && !analysisResults) {
-      handleAnalyzeResume();
+    // Check if we have an analysis ID and fetch the results
+    if (analysisId) {
+      fetchAnalysisResults(analysisId);
     }
-  }, [uploadedFile]);
+  }, [analysisId]);
 
-  const handleFileUploaded = (file: File) => {
+  const handleFileUploaded = (file: File, resumeId: string) => {
     setUploadedFile(file);
+    setAnalysisId(resumeId);
+    setAnalysisComplete(true);
+    setActiveTab("results");
   };
 
-  const handleAnalyzeResume = () => {
-    if (!uploadedFile) return;
-    
-    setIsAnalyzing(true);
-    
-    // Simulate API call for resume analysis
-    setTimeout(() => {
-      // Mock analysis results
-      const mockAnalysis: ResumeAnalysis = {
-        score: Math.floor(Math.random() * 30) + 55, // Score between 55-85
-        keywordMatches: {
-          matched: ["leadership", "project management", "teamwork", "communication", "JavaScript", "React"],
-          missing: ["TypeScript", "agile methodology", "problem-solving"],
-        },
-        sectionScores: {
-          format: Math.floor(Math.random() * 20) + 70, // Score between 70-90
-          content: Math.floor(Math.random() * 30) + 60, // Score between 60-90
-          keywords: Math.floor(Math.random() * 40) + 50, // Score between 50-90
-          impact: Math.floor(Math.random() * 30) + 60, // Score between 60-90
-        },
-        suggestions: [
-          "Add more action verbs to your experience descriptions.",
-          "Include specific metrics and achievements to quantify your impact.",
-          "Add missing keywords like 'TypeScript' and 'problem-solving' to improve ATS match.",
-          "Use a more ATS-friendly resume format with clear section headings.",
-          "Keep your resume to one page if you have less than 10 years of experience."
-        ],
-        strengths: [
-          "Strong emphasis on collaborative teamwork.",
-          "Good use of technical skills section.",
-          "Clear chronological work history.",
-          "Effective use of industry-relevant keywords.",
-          "Well-structured education section."
-        ]
-      };
-      
-      setAnalysisResults(mockAnalysis);
-      setIsAnalyzing(false);
-      setAnalysisComplete(true);
-      setActiveTab("results");
-    }, 3000);
+  const fetchAnalysisResults = async (resumeId: string) => {
+    setIsLoading(true);
+    try {
+      // Get the analysis data from Supabase
+      const { data, error } = await supabase
+        .from('resume_analyses')
+        .select('*')
+        .eq('resume_id', resumeId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Transform database data to match our component's expected format
+        const analysisData: ResumeAnalysis = {
+          score: data.score,
+          keywordMatches: {
+            matched: data.keywords_matched || [],
+            missing: data.keywords_missing || [],
+          },
+          sectionScores: data.section_scores as {
+            format: number;
+            content: number;
+            keywords: number;
+            impact: number;
+          },
+          suggestions: data.suggestions || [],
+          strengths: data.strengths || []
+        };
+        
+        setAnalysisResults(analysisData);
+        setAnalysisComplete(true);
+      }
+    } catch (error) {
+      console.error('Error fetching analysis results:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -99,26 +102,6 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 <ResumeUpload onFileUploaded={handleFileUploaded} />
-                
-                {uploadedFile && (
-                  <div className="mt-6 flex justify-center">
-                    <Button 
-                      onClick={handleAnalyzeResume}
-                      disabled={isAnalyzing}
-                      size="lg"
-                      className="bg-resume-primary hover:bg-resume-secondary"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Analyzing your resume...
-                        </>
-                      ) : (
-                        "Analyze Resume"
-                      )}
-                    </Button>
-                  </div>
-                )}
               </div>
               
               <div className="bg-white p-6 rounded-lg border shadow-sm">
@@ -156,8 +139,31 @@ export default function Dashboard() {
           </TabsContent>
           
           <TabsContent value="results" className="mt-6">
-            {analysisResults && (
+            {isLoading ? (
+              <div className="flex justify-center items-center p-12">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="rounded-full bg-resume-accent/30 p-3">
+                    <BarChart3 className="h-8 w-8 text-resume-primary animate-pulse" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium">Loading analysis results...</p>
+                    <p className="text-sm text-muted-foreground">This will only take a moment</p>
+                  </div>
+                </div>
+              </div>
+            ) : analysisResults ? (
               <AnalysisResults analysis={analysisResults} />
+            ) : (
+              <div className="text-center py-12">
+                <p>No analysis results available. Please upload a resume first.</p>
+                <Button 
+                  onClick={() => setActiveTab("upload")}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Go to Upload
+                </Button>
+              </div>
             )}
           </TabsContent>
         </Tabs>
