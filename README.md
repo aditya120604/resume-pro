@@ -1,73 +1,33 @@
-# Welcome to your Lovable project
+# ResumePro
 
-## Project info
+## Introduction
+ResumePro is a web-based application designed to help job seekers optimize their resumes for Applicant Tracking Systems (ATS). It uses intelligent parsing, keyword analysis, and grammar checks to provide actionable feedback and an overall score for each resume. The goal is to increase the chances of getting shortlisted by improving the quality and relevance of resumes.
 
-**URL**: https://lovable.dev/projects/9fa84dbb-059e-4864-bf2b-1149c7807a87
+## Features
 
-## How can I edit this code?
+### Resume Upload
+Users can upload resumes in either PDF or DOCX format. The system extracts text and structure from the uploaded documents to begin analysis.
 
-There are several ways of editing your application.
+### ATS Compatibility Analysis
+ResumePro evaluates resumes based on key ATS criteria including formatting, structure, keyword presence, and overall readability by automated systems.
 
-**Use Lovable**
+### Keyword and Skill Matching
+The application checks for the presence of industry-specific keywords and skills, helping users align their resumes with job descriptions and industry standards.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9fa84dbb-059e-4864-bf2b-1149c7807a87) and start prompting.
+### Grammar and Language Check
+Using natural language processing tools, the system detects and highlights grammatical mistakes and suggests improvements.
 
-Changes made via Lovable will be committed automatically to this repo.
+### Resume Scoring
+Each resume is given a score out of 100 based on its overall quality, ATS compatibility, keyword relevance, and grammar.
 
-**Use your preferred IDE**
+### Suggestions and Improvements
+Users receive specific feedback and suggestions to enhance their resume, including formatting tips, keyword enhancements, and grammar corrections.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### User Authentication
+Secure login and signup functionality allows users to save their uploaded resumes and access their previous analysis results.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Dashboard for Users
+Registered users have access to a dashboard where they can view past resumes, scores, and feedback history. This helps in tracking improvements over time.
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9fa84dbb-059e-4864-bf2b-1149c7807a87) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Future AI Integration
+ResumePro is designed to support future enhancements including machine learning models for improved resume scoring and personalized job matching.
