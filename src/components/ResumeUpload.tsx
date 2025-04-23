@@ -151,6 +151,11 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
             throw new Error(`Analysis error: ${analysisError.message}`);
           }
 
+          // Check if the response has a userMessage property, which indicates an error
+          if (analysisResponse && analysisResponse.userMessage) {
+            throw new Error(analysisResponse.userMessage);
+          }
+
           console.log('Analysis function call successful:', analysisResponse);
 
           // Wait for analysis to complete before showing results

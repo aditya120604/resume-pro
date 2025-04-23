@@ -29,20 +29,35 @@ export const ensureResumeStorageBucket = async () => {
       
       if (createError) {
         console.error("Error creating resume bucket:", createError);
+        
+        // Check if the error is due to RLS policies
+        if (createError.message.includes('new row violates row-level security policy')) {
+          console.log("RLS policy violation. User may not have permission to create buckets.");
+          // We'll continue and assume an admin has created the bucket or will create it
+          return false;
+        }
+        
         throw createError;
       }
       
-      // Set bucket policy
-      const { error: policyError } = await supabase
-        .storage
-        .from('resumes')
-        .createSignedUrl('dummy-path', 1); // This will fail but will ensure the bucket is properly initialized
-      
-      if (policyError && !policyError.message.includes('not found')) {
+      // Set bucket policy for authenticated uploads
+      try {
+        // Try to access the bucket to confirm it was created
+        const { data: testData, error: testError } = await supabase
+          .storage
+          .from('resumes')
+          .list('');
+        
+        if (testError && !testError.message.includes('not found')) {
+          console.error("Error testing bucket access:", testError);
+        }
+        
+        console.log('Resume bucket created successfully');
+      } catch (policyError) {
         console.error("Error setting bucket policy:", policyError);
       }
-      
-      console.log('Resume bucket created successfully');
+    } else {
+      console.log('Resume bucket already exists');
     }
     
     return true;
@@ -58,7 +73,11 @@ export const ensureResumeStorageBucket = async () => {
 export const initializeResumeSystem = async () => {
   try {
     // Ensure buckets exist
-    await ensureResumeStorageBucket();
+    const bucketResult = await ensureResumeStorageBucket();
+    
+    if (!bucketResult) {
+      console.warn("Failed to ensure resume storage bucket. Some features may not work properly.");
+    }
     
     return true;
   } catch (error) {
