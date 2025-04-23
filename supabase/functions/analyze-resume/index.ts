@@ -17,6 +17,9 @@ serve(async (req) => {
   try {
     const { resumeId, text } = await req.json();
     
+    console.log(`Request received with resumeId: ${resumeId}`);
+    console.log(`Text length: ${text ? text.length : 'undefined'}`);
+
     if (!resumeId || !text) {
       return new Response(JSON.stringify({ 
         error: 'Missing resumeId or text in request body' 
@@ -59,11 +62,34 @@ serve(async (req) => {
       supabaseServiceKey
     );
 
+    // Check if the resume exists
+    const { data: resumeData, error: resumeCheckError } = await supabaseClient
+      .from('resumes')
+      .select('*')
+      .eq('id', resumeId)
+      .single();
+
+    if (resumeCheckError) {
+      console.error(`Resume check error: ${JSON.stringify(resumeCheckError)}`);
+      return new Response(JSON.stringify({ 
+        error: `Resume not found: ${resumeCheckError.message}` 
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Update resume status to processing
-    await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from('resumes')
       .update({ analysis_status: 'processing' })
       .eq('id', resumeId);
+
+    if (updateError) {
+      console.error(`Error updating resume status: ${JSON.stringify(updateError)}`);
+    } else {
+      console.log("Resume status updated to processing");
+    }
 
     // Analyze resume using OpenAI
     console.log("Calling OpenAI API...");
@@ -168,7 +194,12 @@ serve(async (req) => {
         .update({ analysis_status: 'failed' })
         .eq('id', resumeId);
         
-      throw error;
+      return new Response(JSON.stringify({ 
+        error: `Database error: ${error.message}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log("Analysis complete, updating resume status");

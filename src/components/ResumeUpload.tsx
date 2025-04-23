@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -9,6 +9,7 @@ import { ResumeUploadProgress } from "./ResumeUploadProgress";
 import { UploadedResumeSummary } from "./UploadedResumeSummary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
   onFileUploaded: (file: File, analysisId: string) => void;
@@ -23,6 +24,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -48,16 +50,27 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     }
   };
 
+  const handleRetry = () => {
+    if (file) {
+      setRetryCount(retryCount + 1);
+      setError(null);
+      handleFile(file);
+    } else {
+      setError("No file selected. Please upload a resume first.");
+    }
+  };
+
   const handleFile = async (file: File) => {
     const fileType = file.type;
     const validTypes = [
       'application/pdf',
       'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain' // Adding support for text files for easier testing
     ];
     
     if (!validTypes.includes(fileType)) {
-      setError("Please upload a PDF or Word document.");
+      setError("Please upload a PDF, Word document, or text file.");
       return;
     }
 
@@ -72,8 +85,10 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     setUploadProgress(0);
 
     try {
+      console.log(`Starting upload for file: ${file.name}, size: ${file.size} bytes`);
+      
       // Create a record in the resumes table
-      const filePath = `${user.id}/${file.name}`;
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
       
       const { data: resumeData, error: resumeError } = await supabase
         .from('resumes')
@@ -87,9 +102,16 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
         .select()
         .single();
 
-      if (resumeError) throw resumeError;
+      if (resumeError) {
+        console.error('Error creating resume record:', resumeError);
+        throw new Error(`Database error: ${resumeError.message}`);
+      }
+
+      console.log('Resume record created:', resumeData.id);
 
       // Upload file to storage
+      setUploadProgress(20);
+      
       const { error: uploadError } = await supabase.storage
         .from('resumes')
         .upload(filePath, file, {
@@ -97,95 +119,128 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
           upsert: true,
         });
 
-      // Simulate progress since we can't track it
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadProgress(Math.min(progress, 90));
-        if (progress >= 90) clearInterval(interval);
-      }, 300);
-
       if (uploadError) {
-        clearInterval(interval);
-        throw uploadError;
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Storage error: ${uploadError.message}`);
       }
 
-      // Set to 100% after upload completes
-      clearInterval(interval);
-      setUploadProgress(100);
+      console.log('File uploaded successfully to storage');
+      setUploadProgress(70);
 
-      // Now processing with OpenAI
-      setIsUploading(false);
-      setIsProcessing(true);
-      
       // Read file to send to analyze function
       const reader = new FileReader();
+      
       reader.onload = async (e) => {
         try {
           const text = e.target?.result as string;
+          console.log(`File read complete. Text length: ${text.length}`);
+          setUploadProgress(80);
           
-          const { error: analysisError } = await supabase.functions
+          // Now processing with OpenAI
+          setIsUploading(false);
+          setIsProcessing(true);
+          
+          console.log(`Invoking analyze-resume function with resumeId: ${resumeData.id}`);
+          const { data: analysisResponse, error: analysisError } = await supabase.functions
             .invoke('analyze-resume', {
               body: { resumeId: resumeData.id, text }
             });
 
-          if (analysisError) throw analysisError;
+          if (analysisError) {
+            console.error('Analysis function error:', analysisError);
+            throw new Error(`Analysis error: ${analysisError.message}`);
+          }
+
+          console.log('Analysis function call successful:', analysisResponse);
 
           // Wait for analysis to complete before showing results
           let analysisStatus = 'processing';
           let attempts = 0;
+          const maxAttempts = 30; // Increased from 20 to 30 attempts (30 seconds)
+          
           const checkStatus = setInterval(async () => {
-            const { data: resume } = await supabase
-              .from('resumes')
-              .select('analysis_status')
-              .eq('id', resumeData.id)
-              .single();
-            
-            if (resume?.analysis_status === 'completed') {
-              clearInterval(checkStatus);
-              setIsProcessing(false);
-              
-              // Get the analysis data
-              const { data: analysis } = await supabase
-                .from('resume_analyses')
-                .select('*')
-                .eq('resume_id', resumeData.id)
+            try {
+              const { data: resume, error: statusError } = await supabase
+                .from('resumes')
+                .select('analysis_status')
+                .eq('id', resumeData.id)
                 .single();
-                
-              if (analysis) {
-                onFileUploaded(file, resumeData.id);
-                toast({
-                  title: "Resume analyzed successfully",
-                  description: "Your resume analysis is now available.",
-                });
+              
+              if (statusError) {
+                console.error('Status check error:', statusError);
+                throw statusError;
               }
-            }
-            
-            attempts++;
-            if (attempts > 20) {  // Timeout after ~20 seconds
+              
+              console.log(`Analysis status check (${attempts}): ${resume?.analysis_status}`);
+              
+              if (resume?.analysis_status === 'completed') {
+                clearInterval(checkStatus);
+                setIsProcessing(false);
+                
+                // Get the analysis data
+                const { data: analysis, error: analysisDataError } = await supabase
+                  .from('resume_analyses')
+                  .select('*')
+                  .eq('resume_id', resumeData.id)
+                  .single();
+                  
+                if (analysisDataError) {
+                  console.error('Analysis data fetch error:', analysisDataError);
+                  throw analysisDataError;
+                }
+                
+                if (analysis) {
+                  onFileUploaded(file, resumeData.id);
+                  toast({
+                    title: "Resume analyzed successfully",
+                    description: "Your resume analysis is now available.",
+                  });
+                }
+              } else if (resume?.analysis_status === 'failed') {
+                clearInterval(checkStatus);
+                setIsProcessing(false);
+                throw new Error("Analysis failed. Please try again.");
+              }
+              
+              attempts++;
+              if (attempts >= maxAttempts) {
+                clearInterval(checkStatus);
+                setIsProcessing(false);
+                throw new Error("Analysis timed out. Please try again.");
+              }
+            } catch (statusCheckError) {
               clearInterval(checkStatus);
               setIsProcessing(false);
-              throw new Error("Analysis timed out. Please try again.");
+              console.error('Error during status check:', statusCheckError);
+              throw statusCheckError;
             }
           }, 1000);
           
         } catch (error) {
           console.error("Error during analysis:", error);
           setIsProcessing(false);
-          setError("Failed to analyze resume. Please try again.");
+          setError(error.message || "Failed to analyze resume. Please try again.");
+          
+          // Update the resume status to failed
+          await supabase
+            .from('resumes')
+            .update({ analysis_status: 'failed' })
+            .eq('id', resumeData.id);
         }
       };
 
-      reader.onerror = () => {
+      reader.onerror = (readerError) => {
+        console.error('File reader error:', readerError);
         setIsProcessing(false);
         setError("Failed to read file. Please try again.");
       };
 
+      console.log('Starting to read file as text');
       reader.readAsText(file);
       
     } catch (error) {
       console.error('Upload error:', error);
-      setError('An error occurred while uploading your resume.');
+      setError(error.message || 'An error occurred while uploading your resume.');
       setIsUploading(false);
       setIsProcessing(false);
     }
@@ -220,10 +275,27 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
             </div>
           </div>
         ) : error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <div className="flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => setFile(null)}
+                className="mr-2"
+              >
+                Change File
+              </Button>
+              <Button 
+                variant="default"
+                onClick={handleRetry}
+              >
+                Retry Upload
+              </Button>
+            </div>
+          </div>
         ) : (
           <UploadedResumeSummary file={file} onChange={() => setFile(null)} />
         )}

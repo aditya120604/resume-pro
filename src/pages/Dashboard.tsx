@@ -6,17 +6,41 @@ import { ResumeUpload } from "@/components/ResumeUpload";
 import { AnalysisResults, ResumeAnalysis } from "@/components/AnalysisResults";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, BarChart3 } from "lucide-react";
+import { FileText, BarChart3, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { initializeResumeSystem } from "@/services/resumeService";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<ResumeAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [systemError, setSystemError] = useState<string | null>(null);
+  const [systemInitialized, setSystemInitialized] = useState(false);
+
+  useEffect(() => {
+    // Initialize the resume system when the component mounts
+    const initialize = async () => {
+      try {
+        const success = await initializeResumeSystem();
+        setSystemInitialized(success);
+        if (!success) {
+          setSystemError("Failed to initialize resume system. Some features may not work properly.");
+        }
+      } catch (error) {
+        console.error("Error during initialization:", error);
+        setSystemError("An error occurred while setting up the system. Please try again later.");
+      }
+    };
+
+    initialize();
+  }, []);
 
   useEffect(() => {
     // Check if we have an analysis ID and fetch the results
@@ -42,7 +66,10 @@ export default function Dashboard() {
         .eq('resume_id', resumeId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching analysis:", error);
+        throw error;
+      }
 
       if (data) {
         // Transform database data to match our component's expected format
@@ -67,6 +94,11 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error fetching analysis results:', error);
+      toast({
+        variant: "destructive",
+        title: "Error fetching analysis",
+        description: "Failed to load the analysis results. Please try again."
+      });
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +113,13 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-resume-dark">Welcome, {user?.name || "User"}!</h1>
           <p className="text-muted-foreground">Upload your resume for ATS analysis and optimization.</p>
         </div>
+        
+        {systemError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{systemError}</AlertDescription>
+          </Alert>
+        )}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full sm:w-[400px] grid-cols-2">
