@@ -30,9 +30,9 @@ export function HomeHero({ isAuthenticated, userName }: HomeHeroProps) {
           <div className="lg:w-1/2 lg:pl-10">
             <div className="relative">
               <img 
-                src="/lovable-uploads/b135ffbc-ad8a-4df3-8f01-db210998c0b8.png"
-                alt="Resume dashboard preview" 
-                className="relative rounded-lg shadow-xl transform rotate-1 z-10 object-cover max-h-80"
+                src="/lovable-uploads/f47d9bff-b425-4e3f-8c2e-2033a8f7ca28.png" 
+                alt="Resume Analysis" 
+                className="relative rounded-lg shadow-xl transform rotate-1 z-10"
               />
               <div className="absolute -bottom-5 -right-5 bg-white p-4 rounded-lg shadow-lg z-20">
                 <div className="flex items-center gap-2">
@@ -90,4 +90,3 @@ export function HomeHero({ isAuthenticated, userName }: HomeHeroProps) {
     </section>
   );
 }
-
