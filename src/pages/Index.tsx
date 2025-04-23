@@ -1,5 +1,5 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { 
@@ -9,8 +9,13 @@ import {
   Award,
   ArrowRight 
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 
 export default function Index() {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
   const features = [
     {
       icon: <FileText className="h-8 w-8 text-resume-primary" />,
@@ -52,6 +57,50 @@ export default function Index() {
     }
   ];
 
+  if (isAuthenticated) {
+    // For signed-in users, show a simpler intro with dashboard access and user's name
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <section className="bg-gradient-to-br from-resume-primary to-resume-tertiary py-20 text-white">
+          <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center">
+            <div className="lg:w-1/2 mb-10 lg:mb-0">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                Welcome, {user?.name || "User"}!
+              </h1>
+              <p className="text-lg md:text-xl mb-8 opacity-90 max-w-lg">
+                Jump right into your Dashboard to optimize, analyze, or download your tailored resume.
+              </p>
+              <div className="flex gap-4">
+                <Link to="/dashboard">
+                  <Button size="lg" className="bg-white text-resume-primary hover:bg-gray-100 hover:text-resume-secondary shadow-md">
+                    Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="lg:w-1/2 lg:pl-10">
+              <div className="relative">
+                <img 
+                  src="/lovable-uploads/f47d9bff-b425-4e3f-8c2e-2033a8f7ca28.png" 
+                  alt="Resume Analysis" 
+                  className="relative rounded-lg shadow-xl transform rotate-1 z-10"
+                />
+                <div className="absolute -bottom-5 -right-5 bg-white p-4 rounded-lg shadow-lg z-20">
+                  <div className="flex items-center gap-2">
+                    <div className="text-resume-primary font-bold text-xl">97%</div>
+                    <div className="text-sm text-gray-600">ATS Approval Rate</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // Unregistered/logged-out user homepage (original content)
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
