@@ -1,12 +1,12 @@
-
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { ResumeUpload } from "@/components/ResumeUpload";
+import { PreviousAnalyses } from "@/components/PreviousAnalyses";
 import { AnalysisResults, ResumeAnalysis } from "@/components/AnalysisResults";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, BarChart3, AlertCircle } from "lucide-react";
+import { FileText, BarChart3, AlertCircle, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeResumeSystem } from "@/services/resumeService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -127,13 +127,9 @@ export default function Dashboard() {
               <FileText className="h-4 w-4" />
               Upload Resume
             </TabsTrigger>
-            <TabsTrigger 
-              value="results" 
-              disabled={!analysisComplete}
-              className="flex items-center gap-2"
-            >
-              <BarChart3 className="h-4 w-4" />
-              Analysis Results
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Analysis History
             </TabsTrigger>
           </TabsList>
           
@@ -177,33 +173,16 @@ export default function Dashboard() {
             </div>
           </TabsContent>
           
-          <TabsContent value="results" className="mt-6">
-            {isLoading ? (
-              <div className="flex justify-center items-center p-12">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="rounded-full bg-resume-accent/30 p-3">
-                    <BarChart3 className="h-8 w-8 text-resume-primary animate-pulse" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium">Loading analysis results...</p>
-                    <p className="text-sm text-muted-foreground">This will only take a moment</p>
-                  </div>
-                </div>
+          <TabsContent value="history" className="mt-6">
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg border shadow-sm">
+                <h2 className="text-xl font-semibold mb-4">Previous Analyses</h2>
+                <p className="text-muted-foreground mb-6">
+                  View and compare your previous resume analyses to track improvements over time.
+                </p>
+                <PreviousAnalyses />
               </div>
-            ) : analysisResults ? (
-              <AnalysisResults analysis={analysisResults} />
-            ) : (
-              <div className="text-center py-12">
-                <p>No analysis results available. Please upload a resume first.</p>
-                <Button 
-                  onClick={() => setActiveTab("upload")}
-                  variant="outline"
-                  className="mt-4"
-                >
-                  Go to Upload
-                </Button>
-              </div>
-            )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>

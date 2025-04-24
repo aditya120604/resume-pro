@@ -4,40 +4,32 @@ import { Navbar } from "@/components/Navbar";
 import { AnalysisResults, ResumeAnalysis } from "@/components/AnalysisResults";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // In a real app, we would get this from the location state or API
-  // For demo, we'll use a mock result
-  const mockAnalysis: ResumeAnalysis = {
-    score: 78,
-    keywordMatches: {
-      matched: ["leadership", "project management", "teamwork", "communication", "JavaScript", "React"],
-      missing: ["TypeScript", "agile methodology", "problem-solving"],
+  const resumeId = location.state?.resumeId;
+
+  const { data: analysis, isLoading } = useQuery({
+    queryKey: ['analysis', resumeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('resume_analyses')
+        .select('*')
+        .eq('resume_id', resumeId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching analysis:', error);
+        throw error;
+      }
+
+      return data as ResumeAnalysis;
     },
-    sectionScores: {
-      format: 85,
-      content: 75,
-      keywords: 70,
-      impact: 82,
-    },
-    suggestions: [
-      "Add more action verbs to your experience descriptions.",
-      "Include specific metrics and achievements to quantify your impact.",
-      "Add missing keywords like 'TypeScript' and 'problem-solving' to improve ATS match.",
-      "Use a more ATS-friendly resume format with clear section headings.",
-      "Keep your resume to one page if you have less than 10 years of experience."
-    ],
-    strengths: [
-      "Strong emphasis on collaborative teamwork.",
-      "Good use of technical skills section.",
-      "Clear chronological work history.",
-      "Effective use of industry-relevant keywords.",
-      "Well-structured education section."
-    ]
-  };
+    enabled: !!resumeId
+  });
 
   const handleGoBack = () => {
     navigate("/dashboard");
@@ -52,6 +44,17 @@ export default function Results() {
     // In a real app, this would open a sharing dialog
     alert("Share functionality would be implemented here");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navbar />
+        <main className="flex-1 container py-8">
+          <div>Loading analysis results...</div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -91,7 +94,20 @@ export default function Results() {
         </div>
         
         <div className="mb-8">
-          <AnalysisResults analysis={mockAnalysis} />
+          {analysis ? (
+            <AnalysisResults analysis={analysis} />
+          ) : (
+            <div className="text-center py-12">
+              <p>No analysis results found. Please try uploading your resume again.</p>
+              <Button 
+                onClick={handleGoBack}
+                variant="outline"
+                className="mt-4"
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          )}
         </div>
       </main>
       
