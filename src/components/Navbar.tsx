@@ -2,15 +2,35 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   FileText,
   LogOut,
-  User
+  User,
+  Shield
 } from "lucide-react";
 
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ['is-admin', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data, error } = await supabase
+        .rpc('is_admin', { user_id: user.id });
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+      }
+
+      return data;
+    },
+    enabled: !!user
+  });
 
   return (
     <nav className="border-b bg-white shadow-sm">
@@ -28,6 +48,15 @@ export function Navbar() {
                 Dashboard
               </Button>
             </Link>
+            
+            {isAdmin && (
+              <Link to="/admin">
+                <Button variant="outline" size="sm" className="hidden md:flex">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              </Link>
+            )}
             
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground hidden md:inline">
