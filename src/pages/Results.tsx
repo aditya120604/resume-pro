@@ -26,7 +26,24 @@ export default function Results() {
         throw error;
       }
 
-      return data as ResumeAnalysis;
+      // Transform the data to match our ResumeAnalysis type
+      const transformedData: ResumeAnalysis = {
+        score: data.score,
+        keywordMatches: {
+          matched: data.keywords_matched || [],
+          missing: data.keywords_missing || []
+        },
+        sectionScores: data.section_scores as {
+          format: number;
+          content: number;
+          keywords: number;
+          impact: number;
+        },
+        suggestions: data.suggestions || [],
+        strengths: data.strengths || []
+      };
+
+      return transformedData;
     },
     enabled: !!resumeId
   });

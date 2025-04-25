@@ -53,7 +53,18 @@ export function PreviousAnalyses() {
         throw error;
       }
 
-      return data as ResumeWithAnalysis[];
+      // Transform the data to match our expected type
+      return data.map(item => {
+        // If resume_analyses is an array with one item, extract it
+        const analysisData = Array.isArray(item.resume_analyses) && item.resume_analyses.length > 0
+          ? item.resume_analyses[0] 
+          : null;
+          
+        return {
+          ...item,
+          resume_analyses: analysisData
+        };
+      }) as ResumeWithAnalysis[];
     },
     enabled: !!user
   });
