@@ -12,8 +12,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye } from "lucide-react";
+import { FileText, Eye, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 interface ResumeWithAnalysis {
   id: string;
@@ -21,6 +23,7 @@ interface ResumeWithAnalysis {
   uploaded_at: string;
   analysis_status: string;
   job_field: string | null;
+  file_path: string;
   resume_analyses: {
     score: number;
     created_at: string;
@@ -30,6 +33,8 @@ interface ResumeWithAnalysis {
 export function PreviousAnalyses() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [selectedResume, setSelectedResume] = useState<ResumeWithAnalysis | null>(null);
 
   const { data: previousAnalyses, isLoading } = useQuery({
     queryKey: ['previous-analyses', user?.id],
@@ -42,6 +47,7 @@ export function PreviousAnalyses() {
           uploaded_at,
           analysis_status,
           job_field,
+          file_path,
           resume_analyses (
             score,
             created_at
@@ -73,6 +79,56 @@ export function PreviousAnalyses() {
 
   const viewAnalysis = (resumeId: string) => {
     navigate('/results', { state: { resumeId } });
+  };
+
+  const viewResumePdf = async (resume: ResumeWithAnalysis) => {
+    try {
+      setSelectedResume(resume);
+      
+      // Get the file URL from Supabase storage
+      const { data: fileData, error: fileError } = await supabase
+        .storage
+        .from('resumes')
+        .createSignedUrl(resume.file_path, 60); // 60 seconds expiry
+      
+      if (fileError) {
+        console.error('Error fetching file URL:', fileError);
+        throw fileError;
+      }
+      
+      if (fileData) {
+        setPdfUrl(fileData.signedUrl);
+      }
+    } catch (error) {
+      console.error('Error viewing PDF:', error);
+    }
+  };
+
+  const downloadResume = async (resume: ResumeWithAnalysis) => {
+    try {
+      // Get the file URL from Supabase storage
+      const { data: fileData, error: fileError } = await supabase
+        .storage
+        .from('resumes')
+        .createSignedUrl(resume.file_path, 60); // 60 seconds expiry
+      
+      if (fileError) {
+        console.error('Error fetching file URL:', fileError);
+        throw fileError;
+      }
+      
+      if (fileData) {
+        // Create a temporary link and click it to download the file
+        const a = document.createElement('a');
+        a.href = fileData.signedUrl;
+        a.download = resume.file_name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+    }
   };
 
   if (isLoading) {
@@ -123,16 +179,69 @@ export function PreviousAnalyses() {
                 {analysis.resume_analyses?.score ?? 'N/A'}
               </TableCell>
               <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => viewAnalysis(analysis.id)}
-                  disabled={analysis.analysis_status !== 'completed'}
-                  className="flex items-center gap-2 text-gray-700 hover:text-resume-primary"
-                >
-                  <Eye className="h-4 w-4" />
-                  View
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => viewResumePdf(analysis)}
+                        className="flex items-center gap-2 text-gray-700 hover:text-resume-primary"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View PDF
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle>Resume: {selectedResume?.file_name}</DialogTitle>
+                        <DialogDescription>
+                          Uploaded on {selectedResume && format(new Date(selectedResume.uploaded_at), 'PPp')}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="w-full h-full flex-1 overflow-hidden rounded-md border">
+                        {pdfUrl && selectedResume?.file_type === 'application/pdf' ? (
+                          <iframe 
+                            src={pdfUrl} 
+                            className="w-full h-full" 
+                            title="Resume PDF"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full bg-gray-100">
+                            <div className="text-center p-6">
+                              <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                              <p className="text-gray-800">
+                                {pdfUrl
+                                  ? "This file type can't be previewed in the browser"
+                                  : "Unable to load preview"}
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => selectedResume && downloadResume(selectedResume)}
+                                className="mt-4"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Download File
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => viewAnalysis(analysis.id)}
+                    disabled={analysis.analysis_status !== 'completed'}
+                    className="flex items-center gap-2 text-gray-700 hover:text-resume-primary"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Analysis
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
