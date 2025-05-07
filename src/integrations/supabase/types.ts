@@ -87,6 +87,7 @@ export type Database = {
           file_path: string
           file_type: string
           id: string
+          job_field: string | null
           uploaded_at: string
           user_id: string
         }
@@ -96,6 +97,7 @@ export type Database = {
           file_path: string
           file_type: string
           id?: string
+          job_field?: string | null
           uploaded_at?: string
           user_id: string
         }
@@ -105,6 +107,7 @@ export type Database = {
           file_path?: string
           file_type?: string
           id?: string
+          job_field?: string | null
           uploaded_at?: string
           user_id?: string
         }
