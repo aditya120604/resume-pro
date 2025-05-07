@@ -24,6 +24,7 @@ interface ResumeWithAnalysis {
   analysis_status: string;
   job_field: string | null;
   file_path: string;
+  file_type: string; // Add the file_type property
   resume_analyses: {
     score: number;
     created_at: string;
