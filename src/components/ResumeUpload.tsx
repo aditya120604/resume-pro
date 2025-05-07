@@ -10,10 +10,28 @@ import { UploadedResumeSummary } from "./UploadedResumeSummary";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface FileUploadProps {
   onFileUploaded: (file: File, analysisId: string) => void;
 }
+
+const JOB_FIELDS = [
+  "Software Development",
+  "Data Science",
+  "Product Management",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Human Resources",
+  "Design",
+  "Customer Support",
+  "Other"
+];
 
 export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const { toast } = useToast();
@@ -25,6 +43,14 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [showJobFieldForm, setShowJobFieldForm] = useState(false);
+  const [jobField, setJobField] = useState<string>("");
+
+  const form = useForm({
+    defaultValues: {
+      jobField: ""
+    }
+  });
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -40,33 +66,25 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFile(e.dataTransfer.files[0]);
+      const selectedFile = e.dataTransfer.files[0];
+      validateAndSetFile(selectedFile);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      handleFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      validateAndSetFile(selectedFile);
     }
   };
 
-  const handleRetry = () => {
-    if (file) {
-      setRetryCount(retryCount + 1);
-      setError(null);
-      handleFile(file);
-    } else {
-      setError("No file selected. Please upload a resume first.");
-    }
-  };
-
-  const handleFile = async (file: File) => {
-    const fileType = file.type;
+  const validateAndSetFile = (selectedFile: File) => {
+    const fileType = selectedFile.type;
     const validTypes = [
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain' // Adding support for text files for easier testing
+      'text/plain'
     ];
     
     if (!validTypes.includes(fileType)) {
@@ -80,12 +98,40 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     }
 
     setError(null);
-    setFile(file);
+    setFile(selectedFile);
+    setShowJobFieldForm(true);
+  };
+
+  const handleRetry = () => {
+    if (file) {
+      setRetryCount(retryCount + 1);
+      setError(null);
+      setShowJobFieldForm(true);
+    } else {
+      setError("No file selected. Please upload a resume first.");
+    }
+  };
+  
+  const handleJobFieldSubmit = (data: { jobField: string }) => {
+    if (file) {
+      setJobField(data.jobField);
+      handleFile(file, data.jobField);
+    }
+  };
+
+  const handleFile = async (file: File, selectedJobField: string) => {
+    if (!user) {
+      setError("You must be logged in to upload a resume");
+      return;
+    }
+
+    setError(null);
     setIsUploading(true);
     setUploadProgress(0);
+    setShowJobFieldForm(false);
 
     try {
-      console.log(`Starting upload for file: ${file.name}, size: ${file.size} bytes`);
+      console.log(`Starting upload for file: ${file.name}, size: ${file.size} bytes for job field: ${selectedJobField}`);
       
       // Create a record in the resumes table
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
@@ -95,9 +141,10 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
         .insert({
           user_id: user.id,
           file_name: file.name,
-          file_type: fileType,
+          file_type: file.type,
           file_path: filePath,
-          analysis_status: 'uploading'
+          analysis_status: 'uploading',
+          job_field: selectedJobField
         })
         .select()
         .single();
@@ -143,7 +190,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
           console.log(`Invoking analyze-resume function with resumeId: ${resumeData.id}`);
           const { data: analysisResponse, error: analysisError } = await supabase.functions
             .invoke('analyze-resume', {
-              body: { resumeId: resumeData.id, text }
+              body: { resumeId: resumeData.id, text, jobField: selectedJobField }
             });
 
           if (analysisError) {
@@ -159,7 +206,6 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
           console.log('Analysis function call successful:', analysisResponse);
 
           // Wait for analysis to complete before showing results
-          let analysisStatus = 'processing';
           let attempts = 0;
           const maxAttempts = 30; // Increased from 20 to 30 attempts (30 seconds)
           
@@ -260,7 +306,50 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!file ? (
+        {showJobFieldForm && file ? (
+          <div className="space-y-4">
+            <h3 className="font-medium">Select Job Field</h3>
+            <p className="text-sm text-muted-foreground">We'll tailor your resume analysis to this job field</p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleJobFieldSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="jobField"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Field</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a job field" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {JOB_FIELDS.map(jobField => (
+                            <SelectItem key={jobField} value={jobField}>{jobField}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-between">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowJobFieldForm(false);
+                      setFile(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Continue</Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        ) : !file ? (
           <ResumeDropZone
             isDragging={isDragging}
             error={error}

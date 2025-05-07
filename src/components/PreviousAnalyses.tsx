@@ -20,6 +20,7 @@ interface ResumeWithAnalysis {
   file_name: string;
   uploaded_at: string;
   analysis_status: string;
+  job_field: string | null;
   resume_analyses: {
     score: number;
     created_at: string;
@@ -40,6 +41,7 @@ export function PreviousAnalyses() {
           file_name,
           uploaded_at,
           analysis_status,
+          job_field,
           resume_analyses (
             score,
             created_at
@@ -93,6 +95,7 @@ export function PreviousAnalyses() {
         <TableHeader>
           <TableRow>
             <TableHead>File Name</TableHead>
+            <TableHead>Job Field</TableHead>
             <TableHead>Upload Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Score</TableHead>
@@ -103,6 +106,7 @@ export function PreviousAnalyses() {
           {previousAnalyses.map((analysis) => (
             <TableRow key={analysis.id}>
               <TableCell className="font-medium">{analysis.file_name}</TableCell>
+              <TableCell>{analysis.job_field || "Not specified"}</TableCell>
               <TableCell>{format(new Date(analysis.uploaded_at), 'PPp')}</TableCell>
               <TableCell>
                 <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${

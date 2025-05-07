@@ -15,10 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeId, text } = await req.json();
+    const { resumeId, text, jobField } = await req.json();
     
     console.log(`Request received with resumeId: ${resumeId}`);
     console.log(`Text length: ${text ? text.length : 'undefined'}`);
+    console.log(`Job field: ${jobField || 'Not specified'}`);
 
     if (!resumeId || !text) {
       return new Response(JSON.stringify({ 
@@ -96,12 +97,62 @@ serve(async (req) => {
 
     // Generate mock analysis data instead of calling OpenAI API
     // This allows the application to work even when the OpenAI API is unavailable
-    console.log("Generating mock analysis data since OpenAI API quota is exceeded");
+    console.log(`Generating mock analysis data for job field: ${jobField || 'Not specified'}`);
     
+    // Adjust analysis based on job field
+    let fieldSpecificFeedback = [];
+    let fieldSpecificKeywords = [];
+    let fieldSpecificMissing = [];
+    let baseScore = 75;
+    
+    // Add job-field specific analysis
+    if (jobField) {
+      switch(jobField) {
+        case "Software Development":
+          fieldSpecificFeedback = [
+            "Include more specific programming languages and frameworks",
+            "Highlight your GitHub contributions and open source work",
+            "Add metrics on code quality or performance improvements"
+          ];
+          fieldSpecificKeywords = ["API", "Git", "CI/CD", "agile", "full-stack"];
+          fieldSpecificMissing = ["microservices", "containerization", "test-driven development"];
+          baseScore = 78;
+          break;
+        case "Data Science":
+          fieldSpecificFeedback = [
+            "Add more details about specific machine learning models you've implemented",
+            "Quantify the impact of your data analytics work",
+            "Include your experience with big data technologies"
+          ];
+          fieldSpecificKeywords = ["Python", "SQL", "statistical analysis", "visualization"];
+          fieldSpecificMissing = ["deep learning", "neural networks", "big data"];
+          baseScore = 72;
+          break;
+        case "Product Management":
+          fieldSpecificFeedback = [
+            "Emphasize cross-functional team leadership experience",
+            "Include metrics on product performance and user growth",
+            "Highlight your product strategy experience"
+          ];
+          fieldSpecificKeywords = ["roadmap", "user research", "stakeholder management"];
+          fieldSpecificMissing = ["A/B testing", "OKRs", "product lifecycle"];
+          baseScore = 77;
+          break;
+        default:
+          fieldSpecificFeedback = [
+            "Add more industry-specific accomplishments",
+            "Include relevant certifications for your field",
+            "Quantify your achievements with specific metrics"
+          ];
+          fieldSpecificKeywords = ["leadership", "communication", "problem-solving"];
+          fieldSpecificMissing = ["industry expertise", "specialized tools", "methodology knowledge"];
+      }
+    }
+
     const mockAnalysis = {
-      score: 75,
-      keywordsMatched: ["leadership", "project management", "teamwork", "communication"],
-      keywordsMissing: ["machine learning", "data analysis", "python", "cloud computing"],
+      score: baseScore,
+      keywordsMatched: ["leadership", "project management", "teamwork", "communication", ...fieldSpecificKeywords],
+      keywordsMissing: ["machine learning", "data analysis", "python", "cloud computing", ...fieldSpecificMissing],
       sectionScores: {
         format: 80,
         content: 75,
@@ -112,7 +163,8 @@ serve(async (req) => {
         "Add more quantifiable achievements to demonstrate impact",
         "Include relevant technical skills that match job descriptions",
         "Elaborate on project outcomes and results",
-        "Consider using more action verbs to describe experiences"
+        "Consider using more action verbs to describe experiences",
+        ...fieldSpecificFeedback
       ],
       strengths: [
         "Clear and organized structure",
