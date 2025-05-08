@@ -16,6 +16,7 @@ import { FileText, Eye, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ResumeWithAnalysis {
   id: string;
@@ -24,7 +25,7 @@ interface ResumeWithAnalysis {
   analysis_status: string;
   job_field: string | null;
   file_path: string;
-  file_type: string; // Add the file_type property
+  file_type: string;
   resume_analyses: {
     score: number;
     created_at: string;
@@ -34,8 +35,10 @@ interface ResumeWithAnalysis {
 export function PreviousAnalyses() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedResume, setSelectedResume] = useState<ResumeWithAnalysis | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const { data: previousAnalyses, isLoading } = useQuery({
     queryKey: ['previous-analyses', user?.id],
@@ -49,6 +52,7 @@ export function PreviousAnalyses() {
           analysis_status,
           job_field,
           file_path,
+          file_type,
           resume_analyses (
             score,
             created_at
@@ -85,6 +89,7 @@ export function PreviousAnalyses() {
   const viewResumePdf = async (resume: ResumeWithAnalysis) => {
     try {
       setSelectedResume(resume);
+      setPreviewError(null);
       
       // Get the file URL from Supabase storage
       const { data: fileData, error: fileError } = await supabase
@@ -94,6 +99,7 @@ export function PreviousAnalyses() {
       
       if (fileError) {
         console.error('Error fetching file URL:', fileError);
+        setPreviewError("Failed to load file. Please try downloading instead.");
         throw fileError;
       }
       
@@ -102,6 +108,12 @@ export function PreviousAnalyses() {
       }
     } catch (error) {
       console.error('Error viewing PDF:', error);
+      setPreviewError("Error loading file preview");
+      toast({
+        variant: "destructive",
+        title: "Preview Error",
+        description: "Could not load the file preview. Try downloading instead."
+      });
     }
   };
 
@@ -115,6 +127,11 @@ export function PreviousAnalyses() {
       
       if (fileError) {
         console.error('Error fetching file URL:', fileError);
+        toast({
+          variant: "destructive",
+          title: "Download Error",
+          description: "Failed to download the file. Please try again."
+        });
         throw fileError;
       }
       
@@ -129,7 +146,17 @@ export function PreviousAnalyses() {
       }
     } catch (error) {
       console.error('Error downloading resume:', error);
+      toast({
+        variant: "destructive",
+        title: "Download Error",
+        description: "Something went wrong. Please try again."
+      });
     }
+  };
+
+  const canPreviewInBrowser = (fileType: string): boolean => {
+    const previewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'];
+    return previewableTypes.includes(fileType);
   };
 
   if (isLoading) {
@@ -201,7 +228,7 @@ export function PreviousAnalyses() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="w-full h-full flex-1 overflow-hidden rounded-md border">
-                        {pdfUrl && selectedResume?.file_type === 'application/pdf' ? (
+                        {pdfUrl && selectedResume && canPreviewInBrowser(selectedResume.file_type) ? (
                           <iframe 
                             src={pdfUrl} 
                             className="w-full h-full" 
@@ -212,9 +239,11 @@ export function PreviousAnalyses() {
                             <div className="text-center p-6">
                               <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
                               <p className="text-gray-800">
-                                {pdfUrl
-                                  ? "This file type can't be previewed in the browser"
-                                  : "Unable to load preview"}
+                                {previewError ? previewError : (
+                                  selectedResume ? 
+                                  "This file type can't be previewed directly in the browser." :
+                                  "Loading preview..."
+                                )}
                               </p>
                               <Button 
                                 variant="outline" 
