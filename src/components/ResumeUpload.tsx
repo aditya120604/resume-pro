@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +43,6 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [showJobFieldForm, setShowJobFieldForm] = useState(false);
   const [jobField, setJobField] = useState<string>("");
 
   const form = useForm({
@@ -98,14 +98,12 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
 
     setError(null);
     setFile(selectedFile);
-    setShowJobFieldForm(true);
   };
 
   const handleRetry = () => {
     if (file) {
       setRetryCount(retryCount + 1);
       setError(null);
-      setShowJobFieldForm(true);
     } else {
       setError("No file selected. Please upload a resume first.");
     }
@@ -115,6 +113,8 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     if (file) {
       setJobField(data.jobField);
       handleFile(file, data.jobField);
+    } else {
+      setError("Please upload a resume file first");
     }
   };
 
@@ -127,7 +127,6 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
     setError(null);
     setIsUploading(true);
     setUploadProgress(0);
-    setShowJobFieldForm(false);
 
     try {
       console.log(`Starting upload for file: ${file.name}, size: ${file.size} bytes for job field: ${selectedJobField}`);
@@ -305,10 +304,14 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {showJobFieldForm && file ? (
+        <div className="space-y-6">
+          {/* Job Field Selection - Always visible */}
           <div className="space-y-4">
-            <h3 className="font-medium">Select Job Field</h3>
-            <p className="text-sm text-muted-foreground">We'll tailor your resume analysis to this job field</p>
+            <div>
+              <h3 className="font-medium">Select Your Target Job Field</h3>
+              <p className="text-sm text-muted-foreground">We'll tailor your resume analysis to this job field</p>
+            </div>
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleJobFieldSubmit)} className="space-y-4">
                 <FormField
@@ -316,82 +319,73 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
                   name="jobField"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Job Field</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a job field" />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {JOB_FIELDS.map(jobField => (
-                            <SelectItem key={jobField} value={jobField}>{jobField}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          <SelectContent>
+                            {JOB_FIELDS.map(jobField => (
+                              <SelectItem key={jobField} value={jobField}>{jobField}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                     </FormItem>
                   )}
                 />
-                <div className="flex justify-between">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setShowJobFieldForm(false);
-                      setFile(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Continue</Button>
-                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={!file || isUploading || isProcessing}
+                >
+                  {!file ? "Upload & Analyze Resume" : "Analyze Resume"}
+                </Button>
+                
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
               </form>
             </Form>
           </div>
-        ) : !file ? (
-          <ResumeDropZone
-            isDragging={isDragging}
-            error={error}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onFileChange={handleFileChange}
-          />
-        ) : isUploading ? (
-          <ResumeUploadProgress file={file} uploadProgress={uploadProgress} />
-        ) : isProcessing ? (
-          <div className="flex flex-col items-center justify-center py-6 space-y-4">
-            <Loader2 className="h-8 w-8 text-resume-primary animate-spin" />
-            <div className="text-center">
-              <p className="font-medium">Analyzing your resume...</p>
-              <p className="text-sm text-muted-foreground">This may take a few moments</p>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Upload Resume</span>
             </div>
           </div>
-        ) : error ? (
-          <div className="space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <div className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => setFile(null)}
-                className="mr-2"
-              >
-                Change File
-              </Button>
-              <Button 
-                variant="default"
-                onClick={handleRetry}
-              >
-                Retry Upload
-              </Button>
+          
+          {/* Resume Upload Section */}
+          {!file ? (
+            <ResumeDropZone
+              isDragging={isDragging}
+              error={null} // Remove error display here since it's shown in the form
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onFileChange={handleFileChange}
+            />
+          ) : isUploading ? (
+            <ResumeUploadProgress file={file} uploadProgress={uploadProgress} />
+          ) : isProcessing ? (
+            <div className="flex flex-col items-center justify-center py-6 space-y-4">
+              <Loader2 className="h-8 w-8 text-resume-primary animate-spin" />
+              <div className="text-center">
+                <p className="font-medium">Analyzing your resume...</p>
+                <p className="text-sm text-muted-foreground">This may take a few moments</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <UploadedResumeSummary file={file} onChange={() => setFile(null)} />
-        )}
+          ) : (
+            <UploadedResumeSummary file={file} onChange={() => setFile(null)} />
+          )}
+        </div>
       </CardContent>
     </Card>
   );
