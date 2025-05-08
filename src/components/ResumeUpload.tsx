@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -321,10 +320,10 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
                     <FormItem>
                       <FormControl>
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full bg-white text-gray-800">
                             <SelectValue placeholder="Select a job field" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-white text-gray-800">
                             {JOB_FIELDS.map(jobField => (
                               <SelectItem key={jobField} value={jobField}>{jobField}</SelectItem>
                             ))}
@@ -358,7 +357,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
               <div className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Upload Resume</span>
+              <span className="bg-background px-2 text-gray-500">Upload Resume</span>
             </div>
           </div>
           
@@ -366,7 +365,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
           {!file ? (
             <ResumeDropZone
               isDragging={isDragging}
-              error={null} // Remove error display here since it's shown in the form
+              error={null}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
