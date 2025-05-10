@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -83,7 +84,7 @@ export default function Register() {
             <Input
               id="name"
               type="text"
-              placeholder="John Doe"
+              placeholder="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
