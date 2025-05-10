@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User, AuthError } from "@supabase/supabase-js";
@@ -151,20 +152,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      // Delete user account
-      const { error } = await supabase.auth.admin.deleteUser(user?.id || '');
+      // Get current session token
+      const { data: sessionData } = await supabase.auth.getSession();
       
+      if (!sessionData.session) {
+        return { success: false, message: "No active session found. Please login and try again." };
+      }
+      
+      // Call the Edge Function to delete the user account
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
       if (error) {
-        console.error("Delete account error:", error.message);
-        return { success: false, message: error.message };
+        console.error("Delete account error:", error);
+        return { success: false, message: error.message || "Failed to delete account" };
       }
 
       // Sign out after successful deletion
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
+      if (data.success) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+      }
       
-      return { success: true, message: "Your account has been successfully deleted." };
+      return data;
     } catch (error: any) {
       const errorMessage = error?.message || "An error occurred while deleting your account";
       console.error("Delete account error:", error);

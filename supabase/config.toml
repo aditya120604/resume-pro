@@ -3,3 +3,6 @@ project_id = "pogdrjzralwigkrbjgwh"
 
 [functions.analyze-resume]
 verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = false

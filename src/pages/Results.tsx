@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Share2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "@/components/ui/sonner";
 
 export default function Results() {
   const location = useLocation();
@@ -18,17 +19,41 @@ export default function Results() {
     queryFn: async () => {
       // Handle the case where resumeId is not provided
       if (!resumeId) {
-        console.error('No resumeId provided');
+        console.error('No resumeId provided in location state');
         throw new Error('No resume ID was provided');
       }
 
       console.log(`Fetching analysis for resumeId: ${resumeId}`);
       
+      // First check if the resume record exists
+      const { data: resumeData, error: resumeError } = await supabase
+        .from('resumes')
+        .select('analysis_status')
+        .eq('id', resumeId)
+        .maybeSingle();
+        
+      if (resumeError) {
+        console.error('Error fetching resume:', resumeError);
+        throw new Error('Error fetching resume information');
+      }
+
+      if (!resumeData) {
+        console.error('No resume found with ID:', resumeId);
+        throw new Error('Resume not found');
+      }
+      
+      // Check analysis status
+      if (resumeData.analysis_status !== 'completed') {
+        console.log('Analysis not completed yet, status:', resumeData.analysis_status);
+        throw new Error('Analysis is still in progress');
+      }
+
+      // Get the analysis results
       const { data, error } = await supabase
         .from('resume_analyses')
         .select('*')
         .eq('resume_id', resumeId)
-        .maybeSingle(); // Using maybeSingle instead of single to prevent errors when no records are found
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching analysis:', error);
@@ -36,7 +61,7 @@ export default function Results() {
       }
 
       if (!data) {
-        console.error('No analysis found for the given resumeId');
+        console.error('No analysis found for the given resumeId:', resumeId);
         throw new Error('No analysis results found');
       }
 
@@ -62,8 +87,12 @@ export default function Results() {
       return transformedData;
     },
     enabled: !!resumeId,
-    retry: 3, // Retry up to 3 times if the query fails
-    retryDelay: 1000 // Wait 1 second between retries
+    retry: 3,
+    retryDelay: 1000,
+    onError: (err) => {
+      console.error('Query error:', err);
+      toast.error(err instanceof Error ? err.message : "An error occurred while loading your analysis");
+    }
   });
 
   const handleGoBack = () => {
@@ -72,12 +101,12 @@ export default function Results() {
 
   const handleDownloadReport = () => {
     // In a real app, this would generate and download a PDF report
-    alert("Download functionality would be implemented here");
+    toast.info("Download functionality would be implemented here");
   };
 
   const handleShareResults = () => {
     // In a real app, this would open a sharing dialog
-    alert("Share functionality would be implemented here");
+    toast.info("Share functionality would be implemented here");
   };
 
   // Check if we're missing the resumeId
@@ -106,8 +135,8 @@ export default function Results() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar />
-        <main className="flex-1 container py-8">
-          <div className="text-center p-8">
+        <main className="flex-1 container py-8 flex flex-col items-center justify-center">
+          <div className="text-center p-8 w-full max-w-md">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-resume-primary mx-auto mb-4"></div>
             <p className="text-lg font-medium">Loading analysis results...</p>
             <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
