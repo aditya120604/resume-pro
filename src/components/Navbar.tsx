@@ -65,11 +65,11 @@ export function Navbar() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="rounded-full"
+                className="rounded-full bg-gray-100 hover:bg-gray-200"
                 asChild
               >
                 <Link to="/profile">
-                  <User className="h-5 w-5" />
+                  <User className="h-5 w-5 text-resume-dark" />
                 </Link>
               </Button>
               <Button 

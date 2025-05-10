@@ -52,7 +52,7 @@ export default function Profile() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
+                <User className="h-5 w-5 text-resume-primary" />
                 Profile Information
               </CardTitle>
               <CardDescription>
@@ -87,10 +87,9 @@ export default function Profile() {
                   Sign out of your account across all devices.
                 </p>
                 <Button 
-                  variant="outline" 
+                  className="bg-gray-200 hover:bg-gray-300 text-black flex items-center gap-2"
                   onClick={handleLogout}
                   disabled={isLoading}
-                  className="flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4" />
                   Sign Out
