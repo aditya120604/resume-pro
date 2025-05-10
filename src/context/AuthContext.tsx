@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User, AuthError } from "@supabase/supabase-js";
@@ -15,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<{ success: boolean; message: string }>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -146,6 +146,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Delete account function
+  const deleteAccount = async (): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
+    
+    try {
+      // Delete user account
+      const { error } = await supabase.auth.admin.deleteUser(user?.id || '');
+      
+      if (error) {
+        console.error("Delete account error:", error.message);
+        return { success: false, message: error.message };
+      }
+
+      // Sign out after successful deletion
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      
+      return { success: true, message: "Your account has been successfully deleted." };
+    } catch (error: any) {
+      const errorMessage = error?.message || "An error occurred while deleting your account";
+      console.error("Delete account error:", error);
+      return { success: false, message: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -154,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        deleteAccount,
         isAuthenticated: !!session,
         isLoading,
       }}
