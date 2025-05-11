@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -83,7 +82,9 @@ export function PreviousAnalyses() {
   });
 
   const viewAnalysis = (resumeId: string) => {
-    navigate('/results', { state: { resumeId } });
+    navigate(`/results?id=${resumeId}`, { 
+      state: { resumeId } 
+    });
   };
 
   const viewResumePdf = async (resume: ResumeWithAnalysis) => {

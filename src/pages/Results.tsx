@@ -1,135 +1,51 @@
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
-import { AnalysisResults, ResumeAnalysis } from "@/components/AnalysisResults";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, AlertCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { toast } from "@/components/ui/sonner";
+import { AnalysisResults } from "@/components/AnalysisResults";
+import { ErrorState } from "@/components/results/ErrorState";
+import { LoadingState } from "@/components/results/LoadingState";
+import { ResultsHeader } from "@/components/results/ResultsHeader";
+import { useResumeAnalysis } from "@/hooks/useResumeAnalysis";
+import { useEffect } from "react";
 
 export default function Results() {
   const location = useLocation();
-  const navigate = useNavigate();
   const resumeId = location.state?.resumeId;
-
-  const { data: analysis, isLoading, error } = useQuery({
-    queryKey: ['analysis', resumeId],
-    queryFn: async () => {
-      // Handle the case where resumeId is not provided
-      if (!resumeId) {
-        console.error('No resumeId provided in location state');
-        throw new Error('No resume ID was provided');
-      }
-
-      console.log(`Fetching analysis for resumeId: ${resumeId}`);
-      
-      // First check if the resume record exists
-      const { data: resumeData, error: resumeError } = await supabase
-        .from('resumes')
-        .select('analysis_status')
-        .eq('id', resumeId)
-        .maybeSingle();
-        
-      if (resumeError) {
-        console.error('Error fetching resume:', resumeError);
-        throw new Error('Error fetching resume information');
-      }
-
-      if (!resumeData) {
-        console.error('No resume found with ID:', resumeId);
-        throw new Error('Resume not found');
-      }
-      
-      // Check analysis status
-      if (resumeData.analysis_status !== 'completed') {
-        console.log('Analysis not completed yet, status:', resumeData.analysis_status);
-        throw new Error('Analysis is still in progress');
-      }
-
-      // Get the analysis results
-      const { data, error } = await supabase
-        .from('resume_analyses')
-        .select('*')
-        .eq('resume_id', resumeId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching analysis:', error);
-        throw error;
-      }
-
-      if (!data) {
-        console.error('No analysis found for the given resumeId:', resumeId);
-        throw new Error('No analysis results found');
-      }
-
-      console.log('Analysis data retrieved:', data);
-
-      // Transform the data to match our ResumeAnalysis type
-      const transformedData: ResumeAnalysis = {
-        score: data.score,
-        keywordMatches: {
-          matched: data.keywords_matched || [],
-          missing: data.keywords_missing || []
-        },
-        sectionScores: data.section_scores as {
-          format: number;
-          content: number;
-          keywords: number;
-          impact: number;
-        },
-        suggestions: data.suggestions || [],
-        strengths: data.strengths || []
-      };
-
-      return transformedData;
-    },
-    enabled: !!resumeId,
-    retry: 3,
-    retryDelay: 1000,
-    meta: {
-      onSuccess: () => {
-        console.log('Analysis loaded successfully');
-      },
-      onError: (err: Error) => {
-        console.error('Query error:', err);
-        toast.error(err.message || "An error occurred while loading your analysis");
-      }
-    }
+  
+  // If there's no resumeId in location state, check URL parameters
+  // This fixes the issue where the page is blank after direct navigation
+  const urlParams = new URLSearchParams(location.search);
+  const urlResumeId = urlParams.get('id');
+  
+  // Use resumeId from location state or URL parameter
+  const effectiveResumeId = resumeId || urlResumeId;
+  
+  const { data: analysis, isLoading, error } = useResumeAnalysis({
+    resumeId: effectiveResumeId
   });
 
-  const handleGoBack = () => {
-    navigate("/dashboard");
-  };
-
-  const handleDownloadReport = () => {
-    // In a real app, this would generate and download a PDF report
-    toast.info("Download functionality would be implemented here");
-  };
-
-  const handleShareResults = () => {
-    // In a real app, this would open a sharing dialog
-    toast.info("Share functionality would be implemented here");
-  };
+  // Log what's happening to debug the blank page issue
+  useEffect(() => {
+    console.log('Results page loaded with:', {
+      locationStateResumeId: resumeId,
+      urlParamResumeId: urlResumeId,
+      effectiveResumeId,
+      hasAnalysis: !!analysis,
+      isLoading,
+      hasError: !!error
+    });
+  }, [resumeId, urlResumeId, effectiveResumeId, analysis, isLoading, error]);
 
   // Check if we're missing the resumeId
-  if (!resumeId) {
+  if (!effectiveResumeId) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar />
         <main className="flex-1 container py-8">
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              No resume ID was provided. Please upload your resume from the dashboard.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate("/dashboard")} variant="outline">
-            Go to Dashboard
-          </Button>
+          <ErrorState 
+            title="No Resume Selected" 
+            description="No resume ID was provided. Please upload your resume from the dashboard." 
+          />
         </main>
       </div>
     );
@@ -141,11 +57,7 @@ export default function Results() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar />
         <main className="flex-1 container py-8 flex flex-col items-center justify-center">
-          <div className="text-center p-8 w-full max-w-md">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-resume-primary mx-auto mb-4"></div>
-            <p className="text-lg font-medium">Loading analysis results...</p>
-            <p className="text-sm text-muted-foreground mt-2">This may take a few moments</p>
-          </div>
+          <LoadingState />
         </main>
       </div>
     );
@@ -157,16 +69,10 @@ export default function Results() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Navbar />
         <main className="flex-1 container py-8">
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {error instanceof Error ? error.message : "An error occurred while loading your analysis results."}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate("/dashboard")} variant="outline">
-            Go to Dashboard
-          </Button>
+          <ErrorState 
+            title="Error" 
+            description={error instanceof Error ? error.message : "An error occurred while loading your analysis results."}
+          />
         </main>
       </div>
     );
@@ -177,56 +83,16 @@ export default function Results() {
       <Navbar />
       
       <main className="flex-1 container py-8">
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <Button 
-              variant="ghost" 
-              onClick={handleGoBack}
-              className="mb-2 pl-0 hover:bg-transparent hover:text-resume-primary"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold text-resume-dark">Resume Analysis Results</h1>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleShareResults}
-              className="flex items-center gap-2"
-            >
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-            <Button 
-              onClick={handleDownloadReport}
-              className="flex items-center gap-2 bg-resume-primary hover:bg-resume-secondary"
-            >
-              <Download className="h-4 w-4" />
-              Download Report
-            </Button>
-          </div>
-        </div>
+        <ResultsHeader title="Resume Analysis Results" />
         
         <div className="mb-8">
           {analysis ? (
             <AnalysisResults analysis={analysis} />
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm border p-8">
-              <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">No Analysis Results Found</h2>
-              <p className="text-muted-foreground mb-6">
-                We couldn't find any analysis results for this resume. Please try uploading your resume again.
-              </p>
-              <Button 
-                onClick={handleGoBack}
-                variant="outline"
-                className="mt-4"
-              >
-                Go to Dashboard
-              </Button>
-            </div>
+            <ErrorState 
+              title="No Results Found" 
+              description="We couldn't find any analysis results for this resume. Please try uploading your resume again." 
+            />
           )}
         </div>
       </main>

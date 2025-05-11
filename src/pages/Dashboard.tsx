@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { initializeResumeSystem } from "@/services/resumeService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [systemError, setSystemError] = useState<string | null>(null);
   const [systemInitialized, setSystemInitialized] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Initialize the resume system when the component mounts
@@ -54,6 +56,11 @@ export default function Dashboard() {
     setAnalysisId(resumeId);
     setAnalysisComplete(true);
     setActiveTab("results");
+    
+    // Navigate to results page with both state and URL parameter
+    navigate(`/results?id=${resumeId}`, { 
+      state: { resumeId } 
+    });
   };
 
   const fetchAnalysisResults = async (resumeId: string) => {

@@ -14,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 interface FileUploadProps {
-  onFileUploaded: (file: File, analysisId: string) => void;
+  onFileUploaded: (file: File, resumeId: string) => void;
 }
 
 const JOB_FIELDS = [
@@ -35,6 +36,7 @@ const JOB_FIELDS = [
 export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -243,6 +245,11 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
                     title: "Resume analyzed successfully",
                     description: "Your resume analysis is now available.",
                   });
+                  
+                  // Navigate to results page with both state and URL parameter
+                  navigate(`/results?id=${resumeData.id}`, { 
+                    state: { resumeId: resumeData.id } 
+                  });
                 }
               } else if (resume?.analysis_status === 'failed') {
                 clearInterval(checkStatus);
@@ -352,7 +359,7 @@ export function ResumeUpload({ onFileUploaded }: FileUploadProps) {
             </Form>
           </div>
           
-          {/* Resume Upload Section - Removed the divider with "UPLOAD RESUME" text */}
+          {/* Resume Upload Section */}
           {!file ? (
             <ResumeDropZone
               isDragging={isDragging}
