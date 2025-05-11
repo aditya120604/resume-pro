@@ -89,12 +89,14 @@ export default function Results() {
     enabled: !!resumeId,
     retry: 3,
     retryDelay: 1000,
-    onSuccess: (data) => {
-      console.log('Analysis loaded successfully');
-    },
-    onError: (err) => {
-      console.error('Query error:', err);
-      toast.error(err instanceof Error ? err.message : "An error occurred while loading your analysis");
+    meta: {
+      onSuccess: () => {
+        console.log('Analysis loaded successfully');
+      },
+      onError: (err: Error) => {
+        console.error('Query error:', err);
+        toast.error(err.message || "An error occurred while loading your analysis");
+      }
     }
   });
 
